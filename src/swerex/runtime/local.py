@@ -278,7 +278,7 @@ class BashSession(Session):
         2. Execute the command
         3. Get the exit code
         """
-        self.logger.info(f"Running cmd (timeout={action:timeout}): {action.command!r}")
+        self.logger.info(f"Running cmd (timeout={action:timeout}): {action.command}")
         action = deepcopy(action)
 
         assert self.shell is not None
