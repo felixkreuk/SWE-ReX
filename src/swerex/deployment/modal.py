@@ -224,7 +224,10 @@ class ModalDeployment(AbstractDeployment):
             app=self._app,
             **self._modal_kwargs,
         )
+        self.logger.info(f"Pre-tunnel sandbox: {self._sandbox.object_id}")
         tunnel = self._sandbox.tunnels()[self._port]
+        for k, v in self._sandbox.tunnels().items():
+            self.logger.info(f"{k}: {v}")
         elapsed_sandbox_creation = time.time() - t0
         self.logger.info(f"Sandbox ({self._sandbox.object_id}) created in {elapsed_sandbox_creation:.2f}s")
         self.logger.info(f"Check sandbox logs at {self.get_modal_log_url()}")
