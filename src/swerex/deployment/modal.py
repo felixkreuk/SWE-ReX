@@ -195,7 +195,8 @@ class ModalDeployment(AbstractDeployment):
         install pipx and then run swerex-server with pipx run
         """
         rex_args = f"--port {self._port} --auth-token {token}"
-        return f"{REMOTE_EXECUTABLE_NAME} {rex_args} || pipx run {PACKAGE_NAME} {rex_args}"
+        # return f"{REMOTE_EXECUTABLE_NAME} {rex_args} || pipx run {PACKAGE_NAME} {rex_args}"
+        return f"pipx run --spec git+https://github.com/felixkreuk/SWE-ReX.git swerex {rex_args}"
 
     def get_modal_log_url(self) -> str:
         """Returns URL to modal logs
