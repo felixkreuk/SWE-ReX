@@ -39,7 +39,7 @@ logging.basicConfig(
 )
 
 app = FastAPI()
-runtime = LocalRuntime()
+runtime = None
 
 AUTH_TOKEN = ""
 api_key_header = APIKeyHeader(name="X-API-Key")
@@ -156,6 +156,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 async def serve_once(host: str, port: int) -> None:
+    global runtime
+    runtime = LocalRuntime()
+
     config = uvicorn.Config(app, host=host, port=port)
     server = uvicorn.Server(config)
     loop = asyncio.get_running_loop()
