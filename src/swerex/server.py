@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import asyncio
 import shutil
+import signal
 import tempfile
 import traceback
 import zipfile
 from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
@@ -136,32 +139,29 @@ async def close():
     return CloseResponse()
 
 
-def main():
-    import uvicorn
+def build_arg_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="Run the SWE-ReX server")
+    p.add_argument("--host", default="0.0.0.0")
+    p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--auth-token", required=True)
+    return p
 
-    # First parser just for version checking
-    version_parser = argparse.ArgumentParser(add_help=False)
-    version_parser.add_argument("-v", "--version", action="store_true")
-    version_args, remaining_args = version_parser.parse_known_args()
 
-    if version_args.version:
-        if remaining_args:
-            print("Error: --version cannot be combined with other arguments")
-            exit(1)
-        print(__version__)
-        return
+async def serve_once(host: str, port: int) -> None:
+    config = uvicorn.Config(app, host=host, port=port)
+    server = uvicorn.Server(config)
+    loop = asyncio.get_running_loop()
 
-    # Main parser for other arguments
-    parser = argparse.ArgumentParser(description="Run the SWE-ReX server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind the server to")
-    parser.add_argument("--port", type=int, default=8000, help="Port to run the server on")
-    parser.add_argument("--auth-token", default="", help="token to authenticate requests", required=True)
+    loop.add_signal_handler(
+        signal.SIGUSR1,
+        lambda: setattr(server, "should_exit", True)
+    )
+    await server.serve()  # ← blocks until should_exit is True
 
-    args = parser.parse_args(remaining_args)
-    global AUTH_TOKEN
-    AUTH_TOKEN = args.auth_token
-    uvicorn.run(app, host=args.host, port=args.port)
-
+def main() -> None:
+    args = build_arg_parser().parse_args()
+    while True:
+        asyncio.run(serve_once(args.host, args.port))
 
 if __name__ == "__main__":
     main()
