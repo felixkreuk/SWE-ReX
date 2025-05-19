@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import logging
 import shutil
 import signal
 import tempfile
@@ -29,6 +30,13 @@ from swerex.runtime.abstract import (
     _ExceptionTransfer,
 )
 from swerex.runtime.local import LocalRuntime
+
+logging.basicConfig(
+    filename='server.log',
+    filemode='a',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 app = FastAPI()
 runtime = LocalRuntime()
@@ -159,9 +167,12 @@ async def serve_once(host: str, port: int) -> None:
     await server.serve()  # ← blocks until should_exit is True
 
 def main() -> None:
+    i = 0
     args = build_arg_parser().parse_args()
     while True:
+        logging.info(f"Starting server, iteation: {i}")
         asyncio.run(serve_once(args.host, args.port))
+        i += 1
 
 if __name__ == "__main__":
     main()
