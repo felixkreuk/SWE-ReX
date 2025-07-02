@@ -86,7 +86,13 @@ class _ImageBuilder:
             raise ValueError(msg) from e
 
     def ensure_pipx_installed(self, image: modal.Image) -> modal.Image:
-        image = image.pip_install("uv")
+        image = image.run_commands(
+            "apt-get update || true",
+            "apt-get install -y jq"
+        )
+        image = image.pip_install(
+            "uv"
+        )
         return image
 
     def auto(self, image_spec: str | modal.Image | PurePath) -> modal.Image:
