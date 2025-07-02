@@ -86,8 +86,8 @@ class _ImageBuilder:
             raise ValueError(msg) from e
 
     def ensure_pipx_installed(self, image: modal.Image) -> modal.Image:
-        image = image.apt_install("pipx")
-        return image.run_commands("pipx ensurepath")
+        image = image.pip_install("uv")
+        return image
 
     def auto(self, image_spec: str | modal.Image | PurePath) -> modal.Image:
         if isinstance(image_spec, modal.Image):
@@ -195,8 +195,12 @@ class ModalDeployment(AbstractDeployment):
         install pipx and then run swerex-server with pipx run
         """
         rex_args = f"--port {self._port} --auth-token {token}"
-        # return f"{REMOTE_EXECUTABLE_NAME} {rex_args} || pipx run {PACKAGE_NAME} {rex_args}"
-        return f"pipx run --spec git+https://github.com/felixkreuk/SWE-ReX.git swerex-remote {rex_args}"
+        return (
+            "uvx "
+            "--index-url https://pypi.org/simple "
+            "--from git+https://github.com/felixkreuk/SWE-ReX.git "
+            f"swerex-remote {rex_args}"
+        )
 
     def get_modal_log_url(self) -> str:
         """Returns URL to modal logs
@@ -214,17 +218,18 @@ class ModalDeployment(AbstractDeployment):
         self._hooks.on_custom_step("Starting modal sandbox")
         t0 = time.time()
         token = self._get_token()
-        self._sandbox = modal.Sandbox.create(
-            "/usr/bin/env",
-            "bash",
-            "-c",
-            self._start_swerex_cmd(token),
-            image=self._image,
-            timeout=int(self._deployment_timeout),
-            unencrypted_ports=[self._port],
-            app=self._app,
-            **self._modal_kwargs,
-        )
+        with modal.enable_output():
+            self._sandbox = modal.Sandbox.create(
+                "/usr/bin/env",
+                "bash",
+                "-c",
+                self._start_swerex_cmd(token),
+                image=self._image,
+                timeout=int(self._deployment_timeout),
+                unencrypted_ports=[self._port],
+                app=self._app,
+                **self._modal_kwargs,
+            )
         self.logger.info(f"Pre-tunnel sandbox: {self._sandbox.object_id}")
         tunnel = self._sandbox.tunnels()[self._port]
         for k, v in self._sandbox.tunnels().items():
